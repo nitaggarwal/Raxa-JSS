@@ -3,7 +3,7 @@ Ext.define('Screener.store.drugConcept', {
     extend: 'Ext.data.Store',
     config: {
         fields: [{
-            name: 'uuid',
+            name: 'concept',
             type: 'string'
         }]
     }

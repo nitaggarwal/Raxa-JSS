@@ -39,27 +39,27 @@ Util.PAGES.SCREENER = {
  */
 Ext.define("Screener.controller.Application", {
     requires: [
-        'Screener.store.AssignedPatientList',
-        'Screener.store.Doctors',
-        'Screener.store.drugConcept',
-        'Screener.store.drugEncounter',
-        'Screener.store.druglist',
-        'Screener.store.encounterpost',
-        'Screener.store.encounters',
-        'Screener.store.IdentifierType',
-        'Screener.store.Location',
-        'Screener.store.NewPatients',   // Cant find this store
-        'Screener.store.NewPersons',
-        'Screener.store.PatientList',
-        'Screener.store.Patients',
-        'Screener.store.PatientSummary',
-        'Screener.store.PostLists',
-	'Screener.model.observation',	
-        'Screener.view.PharmacyForm', 
-        'Screener.view.PatientListView',
-        'Screener.view.VitalsView',
-        'Screener.view.VitalsForm',
-        'Screener.view.Main',
+    'Screener.store.AssignedPatientList',
+    'Screener.store.Doctors',
+    'Screener.store.drugConcept',
+    'Screener.store.drugEncounter',
+    'Screener.store.druglist',
+    'Screener.store.encounterpost',
+    'Screener.store.encounters',
+    'Screener.store.IdentifierType',
+    'Screener.store.Location',
+    'Screener.store.NewPatients',   // Cant find this store
+    'Screener.store.NewPersons',
+    'Screener.store.PatientList',
+    'Screener.store.Patients',
+    'Screener.store.PatientSummary',
+    'Screener.store.PostLists',
+    'Screener.model.observation',	
+    'Screener.view.PharmacyForm', 
+    'Screener.view.PatientListView',
+    'Screener.view.VitalsView',
+    'Screener.view.VitalsForm',
+    'Screener.view.Main',
     ],
     models: [
     'Screener.model.Person', 
@@ -82,6 +82,7 @@ Ext.define("Screener.controller.Application", {
             sortPanel: 'sortPanel',
             patientList: '#patientList', // Assign Patient page
             vitalsPatientList: '#vitalsPatientList',
+            pharmacyPatientList: '#pharmacyPatientList',
             doctorList: '#doctorList',
             expandDoctorList: '#expandDoctorList',
             assignedPatientList: '#assignedPatientList',
@@ -145,7 +146,7 @@ Ext.define("Screener.controller.Application", {
                 tap: 'sortByName'
             },
             drugSubmitButton: {
-                tap: 'drugSubmit'
+                tap: 'drugSubmitConfirmation'
             },
             'patientListView button[action=sortByFIFO]': {
                 tap: 'sortByFIFO'
@@ -331,7 +332,7 @@ Ext.define("Screener.controller.Application", {
         store_assignedPatientList.load();
         that = this;
         store_patientList.on('load', function () {
-            that.setBMITime(store_patientList);
+            that.setComplaintBMITime(store_patientList);
             // TODO: Add photos to patients in screener list
             store_patientList.each(function (record) {
                 record.set('image', '/Raxa-JSS/src/screener/resources/pic.gif');
@@ -378,25 +379,24 @@ Ext.define("Screener.controller.Application", {
      *       - post the order with "concept", "patient", "drug", and most important "type" as "drugtype" */
     drugsubmit: function () {
         // one of the patient should be selected for posting drug order
-        if (this.getPatientList().getSelection()[0] !== null) {
+        if (this.getPharmacyPatientList().getComponent('patientList').getSelection().length > 0) {
             //this is the array of stores for getting the drugs concept uuid
-            var concept = [];
+            var conceptStores = [];
             // this is the array of object for drug orders
             var order = [];
             var numberOfLoadedConcepts = 0;
             for (i = 0; i <= form_num; i++) {
                 // value of Url for get call is made here using name of drug
-                var Url = HOST + '/ws/rest/v1/concept?q=';
-                Url = Url + Ext.getCmp('form' + i).getAt(0).getAt(0)._value.data.text;
-                concept.push(Ext.create('Screener.store.drugConcept'));
+                var Url = HOST + '/ws/rest/v1/raxacore/drug/';
+                Url = Url + Ext.getCmp('form' + i).getAt(0).getAt(0).getAt(0)._value.data.value;
+                conceptStores.push(Ext.create('Screener.store.drugConcept'));
                 // setting up the proxy for store with the above Url
-                concept[i].setProxy({
+                conceptStores[i].setProxy({
                     type: 'rest',
                     url: Url,
                     headers: Util.getBasicAuthHeaders(),
                     reader: {
-                        type: 'json',
-                        rootProperty: 'results'
+                        type: 'json'
                     }
                 });
                 var startdate = new Date();
@@ -413,7 +413,7 @@ Ext.define("Screener.controller.Application", {
                 }
                 // model for drug order is created here
                 order.push({
-                    patient: this.getPatientList().getSelection()[0].getData().uuid,
+                    patient: this.getPharmacyPatientList().getComponent('patientList').getSelection()[0].getData().uuid,
                     drug: Ext.getCmp('form' + i).getValues().drug,
                     startDate: startdate,
                     autoExpireDate: enddate,
@@ -428,20 +428,20 @@ Ext.define("Screener.controller.Application", {
                     order[i].instructions = "-";
                 }
                 // here it makes the get call for concept of related drug
-                concept[i].load();
+                conceptStores[i].load();
                 // added a counter k which increment as a concept load successfully, after all the concept are loaded
                 // value of k should be equal to the no. of drug forms
-                concept[i].on('load', function () {
+                conceptStores[i].on('load', function () {
                     numberOfLoadedConcepts++;
                     // value of k is compared with the no of drug forms
                     if (numberOfLoadedConcepts == form_num + 1) {
                         for (var j = 0; j <= form_num; j++) {
-                            order[j].concept = concept[j].getAt(0).getData().uuid
+                            order[j].concept = conceptStores[j].data.items[0].data.concept;
                         }
                         var time = Util.Datetime(startdate, Util.getUTCGMTdiff());
                         // model for posting the encounter for given drug orders
                         var encounter = Ext.create('Screener.model.drugEncounter', {
-                            patient: this.getPatientList().getSelection()[0].getData().uuid,
+                            patient: this.getPharmacyPatientList().getComponent('patientList').getSelection()[0].getData().uuid,
                             // this is the encounter for the prescription encounterType
                             encounterType: localStorage.prescriptionUuidencountertype,
                             encounterDatetime: time,
@@ -948,7 +948,7 @@ Ext.define("Screener.controller.Application", {
         Ext.Msg.alert("Submitted patient vitals");
     },
 
-    drugSubmit: function () {
+    drugSubmitConfirmation: function () {
         objectRef = this;
         // changes the button text to 'Confirm' and 'Cancel'
         var MB = Ext.MessageBox;
