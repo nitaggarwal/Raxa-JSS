@@ -379,7 +379,6 @@ Ext.define("Screener.controller.Application", {
      *       - post the order with "concept", "patient", "drug", and most important "type" as "drugtype" */
     drugsubmit: function () {
         // one of the patient should be selected for posting drug order
-        if (this.getPharmacyPatientList().getComponent('patientList').getSelection().length > 0) {
             //this is the array of stores for getting the drugs concept uuid
             var conceptStores = [];
             // this is the array of object for drug orders
@@ -452,14 +451,14 @@ Ext.define("Screener.controller.Application", {
                         // make post call for encounter
                         encounterStore.sync()
                         encounterStore.on('write', function () {
-                            Ext.Msg.alert('successfull')
+                            Ext.Msg.alert('successfull', 'Successfull write to server')
                         //Note- if we want add a TIMEOUT it shown added somewhere here
                         }, this)
 
                     }
                 }, this);
             }
-        } else Ext.Msg.alert("please select a patient")
+        
     },
     addLabOrder: function () {
         lab_num++;
@@ -968,8 +967,19 @@ Ext.define("Screener.controller.Application", {
         });
         // on-click, launch MessageBox
         Ext.get('drugSubmitButton').on('click', function (e) {
-            Ext.Msg.confirm("Confirmation", "Are you sure you want to submit your Pharmacy Order?", Ext.emptyFn);
-        });
+            if (objectRef.getPharmacyPatientList().getComponent('patientList').getSelection().length > 0) {
+            Ext.Msg.confirm("Confirmation", "Are you sure you want to submit your Pharmacy Order?", function(button) {
+                if(button === 'yes'){
+                    objectRef.drugsubmit();
+                }
+                
+            },this);
+            //Ext.Msg.confirm.hide();
+        }
+        else {
+            Ext.Msg.alert('Please select a patient');
+        }
+    });
     },
 
     // TODO: Possible to get oldPage via application state?
