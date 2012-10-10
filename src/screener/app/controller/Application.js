@@ -326,18 +326,25 @@ Ext.define("Screener.controller.Application", {
                 store_scrEncounter.getData().getAt(0).getData().uuid, 
                 store_outEncounter.getData().getAt(0).getData().uuid, 
                 localStorage.screenerUuidencountertype
-                )
-            );
-        store_patientList.load();
+            )
+        );
+        store_patientList.load({
+            scope: this,
+            callback: function(records, operation, success){
+                if(success){
+                    Ext.getCmp('loadMask').setHidden(true);
+                    this.setBMITime(store_patientList);
+                    // TODO: Add photos to patients in screener list
+                    store_patientList.each(function (record) {
+                        record.set('image', '/Raxa-JSS/src/screener/resources/pic.gif');
+                    });
+                }
+                else{
+                    Ext.Msg.alert("Error", Util.getMessageLoadError());
+                }
+            }
+        });
         store_assignedPatientList.load();
-        that = this;
-        store_patientList.on('load', function () {
-            that.setComplaintBMITime(store_patientList);
-            // TODO: Add photos to patients in screener list
-            store_patientList.each(function (record) {
-                record.set('image', '/Raxa-JSS/src/screener/resources/pic.gif');
-            });
-        }, this);
         // TODO: Pass a function instead of string, to avoid implied "eval"
         // TODO: Does this actually refresh on the specified interval? tried
         // with 5000 and it doesnt work..
@@ -427,36 +434,39 @@ Ext.define("Screener.controller.Application", {
                     order[i].instructions = "-";
                 }
                 // here it makes the get call for concept of related drug
-                conceptStores[i].load();
-                // added a counter k which increment as a concept load successfully, after all the concept are loaded
-                // value of k should be equal to the no. of drug forms
-                conceptStores[i].on('load', function () {
-                    numberOfLoadedConcepts++;
-                    // value of k is compared with the no of drug forms
-                    if (numberOfLoadedConcepts == form_num + 1) {
-                        for (var j = 0; j <= form_num; j++) {
-                            order[j].concept = conceptStores[j].data.items[0].data.concept;
+                conceptStores[i].load({
+                    scope: this,
+                    callback: function(records, operation, success){
+                        if(success){
+                            numberOfLoadedConcepts++;
+                            // value of k is compared with the no of drug forms
+                            if (numberOfLoadedConcepts == form_num + 1) {
+                                for (var j = 0; j <= form_num; j++) {
+                                    order[j].concept = conceptStores[j].data.items[0].data.concept;
+                                }
+                                var time = Util.Datetime(startdate, Util.getUTCGMTdiff());
+                                // model for posting the encounter for given drug orders
+                                var encounter = Ext.create('Screener.model.drugEncounter', {
+                                    patient: this.getPharmacyPatientList().getComponent('patientList').getSelection()[0].getData().uuid,
+                                    // this is the encounter for the prescription encounterType
+                                    encounterType: localStorage.prescriptionUuidencountertype,
+                                    encounterDatetime: time,
+                                    orders: order
+                                })
+                                var encounterStore = Ext.create('Screener.store.drugEncounter')
+                                encounterStore.add(encounter)
+                                // make post call for encounter
+                                encounterStore.sync()
+                                encounterStore.on('write', function () {
+                                    Ext.Msg.alert('Successful', 'Successful write to Server')
+                                }, this)
+                            }
                         }
-                        var time = Util.Datetime(startdate, Util.getUTCGMTdiff());
-                        // model for posting the encounter for given drug orders
-                        var encounter = Ext.create('Screener.model.drugEncounter', {
-                            patient: this.getPharmacyPatientList().getComponent('patientList').getSelection()[0].getData().uuid,
-                            // this is the encounter for the prescription encounterType
-                            encounterType: localStorage.prescriptionUuidencountertype,
-                            encounterDatetime: time,
-                            orders: order
-                        })
-                        var encounterStore = Ext.create('Screener.store.drugEncounter')
-                        encounterStore.add(encounter)
-                        // make post call for encounter
-                        encounterStore.sync()
-                        encounterStore.on('write', function () {
-                            Ext.Msg.alert('successfull', 'Successfull write to server')
-                        //Note- if we want add a TIMEOUT it shown added somewhere here
-                        }, this)
-
+                        else{
+                            Ext.Msg.alert("Error", Util.getMessageLoadError());
+                        }
                     }
-                }, this);
+                });
             }
         
     },
@@ -506,18 +516,32 @@ Ext.define("Screener.controller.Application", {
     // Get IdentifierType using IdentifierType store 
     getidentifierstype: function (personUuid) {
         var identifiers = Ext.create('Screener.store.IdentifierType')
-        identifiers.load();
-        identifiers.on('load',function(){
-            this.getlocation(personUuid,identifiers.getAt(0).getData().uuid)
-        },this);
+        identifiers.load({
+            scope: this,
+            callback: function(records, operation, success){
+                if(success){
+                    this.getlocation(personUuid,identifiers.getAt(0).getData().uuid)
+                }
+                else{
+                    Ext.Msg.alert("Error", Util.getMessageLoadError());
+                }
+            }
+        });
     },
     // Get Location using Location store
     getlocation: function (personUuid, identifierType) {
         var locations = Ext.create('Screener.store.Location')
-        locations.load();
-        locations.on('load',function(){
-            this.makePatient(personUuid,identifierType,locations.getAt(0).getData().uuid)
-        },this)
+        locations.load({
+            scope: this,
+            callback: function(records, operation, success){
+                if(success){
+                    this.makePatient(personUuid,identifierType,locations.getAt(0).getData().uuid)
+                }
+                else{
+                    Ext.Msg.alert("Error", Util.getMessageLoadError());
+                }
+            }
+        });
     },
     // Creates a new patient using NewPatients store 
     makePatient: function (personUuid, identifierType, location) {
@@ -553,24 +577,31 @@ Ext.define("Screener.controller.Application", {
         /*this.getDoctorList().deselectAll();*/
         this.getPatientList().deselectAll();
 
-        console.log('update title');
         this.updatePatientsWaitingTitle();
-        console.log('count patients');
         this.countPatients();
     },
     // Counts number of patients assigned to a doctor   
     countPatients: function () {
         //store = Ext.create('Screener.store.AssignedPatientList');
-        store = Ext.getStore('assPatientStore')
-        docStore = Ext.create('Screener.store.Doctors')
+        var patientStore = Ext.getStore('assPatientStore')
+        var docStore = Ext.getStore('doctorStore');
+        if(!Ext.getStore('doctorStore')){
+            docStore = Ext.create('Screener.store.Doctors',{
+                storeId: 'doctorStore'
+            });
+        }
+        else{
+            docStore.load();
+        }
         docStore.on('load', function () {
-            store.load();
-            store.on('load', function () {
+            patientStore.load();
+            patientStore.on('load', function () {
                 for (var i = 0; i < docStore.getData().length; i++) {
                     var count = 0;
-                    for (var j = 0; j < store.getData().items[0].getData().patients.length; j++) {
+                    var patients = patientStore.getData().items[0].getData().patients;
+                    for (var j = 0; j < patients.length; j++) {
                         if (docStore.data.items[i].data.person != null) {
-                            if (docStore.data.items[i].data.person.uuid == store.getData().items[0].getData().patients[j].encounters[0].provider) {
+                            if (docStore.data.items[i].data.person.uuid == patients[j].encounters[0].provider) {
                                 count = count + 1;
                             }
                         }
@@ -579,8 +610,8 @@ Ext.define("Screener.controller.Application", {
                 }
                 Ext.getCmp('doctorList').setStore(docStore)
                 return docStore
-            })
-        })
+            }, this)
+        }, this)
     },
     // Show screen with pharmacy list
     showPharmacy: function () {
@@ -720,11 +751,17 @@ Ext.define("Screener.controller.Application", {
     },
     //this method refreshes the patientList and also updates the patientWaitingTitle and bmi, encountertime locally in patient model 
     refreshList: function () {
-        Ext.getStore('patientStore').load();
-        that = this;
-        Ext.getStore('patientStore').on('load', function () {
-            that.updatePatientsWaitingTitle();
-            that.setComplaintBMITime(Ext.getStore('patientStore'));
+        Ext.getStore('patientStore').load({
+            scope: this,
+            callback: function(records, operation, success){
+                if(success){
+                    this.updatePatientsWaitingTitle();
+                    this.setComplaintBMITime(Ext.getStore('patientStore'));
+                }
+                else{
+                    Ext.Msg.alert("Error", Util.getMessageLoadError());
+                }
+            }
         });
     },
 
@@ -759,6 +796,9 @@ Ext.define("Screener.controller.Application", {
             success: function () {
                 Ext.getStore('patientStore').load()
                 objectRef.showPatients()
+            },
+            failure: function() {
+                Ext.Msg.alert("Error", Util.getMessageSyncError());
             }
         });
         this.getRemoveButton().disable();
@@ -776,7 +816,10 @@ Ext.define("Screener.controller.Application", {
                         withCredentials: true,
                         useDefaultXhrHeader: false,
                         method: 'DELETE',
-                        headers: Util.getBasicAuthHeaders()
+                        headers: Util.getBasicAuthHeaders(),
+                        failure: function() {
+                            Ext.Msg.alert("Error", Util.getMessageSyncError());
+                        }
                     });
                 }
                 Ext.getStore('patientStore').load()
@@ -818,8 +861,7 @@ Ext.define("Screener.controller.Application", {
             patient: personUuid, 
             encounterType: encountertype,
             //location: location,
-            provider: provider,
-        /*uuid: '',   // TODO: see if sending a nonnull UUID allows the server to update with the real value*/
+            provider: provider
         });
        
         // Handle "Screener Vitals" encounters specially
@@ -877,60 +919,6 @@ Ext.define("Screener.controller.Application", {
         Ext.Msg.alert("Submitted patient vitals");
     },
     
-    sendEncounterData: function (personUuid, encountertype, location, provider) {
-        //funciton to get the date in required format of the openMRS, since the default extjs4 format is not accepted
-        var t = Util.Datetime(new Date(), Util.getUTCGMTdiff());
-        
-        // creates the encounter json object
-        // the 3 fields "encounterDatetime, patient, encounterType" are obligatory fields rest are optional
-        var jsonencounter = Ext.create('Screener.model.encounterpost', {
-            encounterDatetime: t,
-            patient: personUuid, 
-            encounterType: encountertype,
-            //location: location,
-            provider: provider,
-        /*uuid: '',   // TODO: see if sending a nonnull UUID allows the server to update with the real value*/
-        });
-       
-        // Handle "Screener Vitals" encounters specially
-        // Create observations linked to the encounter
-        if (encountertype === localStorage.screenervitalsUuidencountertype)
-        {
-            var observations = jsonencounter.observations();    // Create set of observations
-            
-            var createObs = function (c, v) {
-                // TODO: https://raxaemr.atlassian.net/browse/RAXAJSS-368
-                // Validate before submitting an Obs
-                observations.add({
-                    obsDatetime : t,
-                    person: personUuid,
-                    concept: c,
-                    value: v
-                });
-            };
-
-            console.log("Creating Obs for uuid types...");
-            v = Ext.getCmp("vitalsForm").getValues();
-            createObs(localStorage.bloodoxygensaturationUuidconcept, v.bloodOxygenSaturationField[0]);
-            createObs(localStorage.diastolicbloodpressureUuidconcept, v.diastolicBloodPressureField[0]);
-            createObs(localStorage.respiratoryRateUuidconcept, v.respiratoryRateField[0]);
-            createObs(localStorage.systolicbloodpressureUuidconcept, v.systolicBloodPressureField[0]);
-            createObs(localStorage.temperatureUuidconcept, v.temperatureField[0]); 
-            createObs(localStorage.pulseUuidconcept, v.pulseField[0]);
-            observations.sync();
-            console.log("... Complete! Created Obs for new uuid types");
-        }
-
-        // Create encounter
-        var store = Ext.create('Screener.store.encounterpost');
-        store.add(jsonencounter);
-        store.sync();
-        store.on('write', function () {
-            Ext.getStore('patientStore').load();
-        }, this);
-        return store;
-    },
-
     // Create a SCREENER_VITALS encounter and attach vitals observations
     savePatientVitals: function () {
         var vpl = this.getVitalsPatientList().getComponent("patientList"); 
@@ -974,7 +962,6 @@ Ext.define("Screener.controller.Application", {
                 }
                 
             },this);
-            //Ext.Msg.confirm.hide();
         }
         else {
             Ext.Msg.alert('Please select a patient');
