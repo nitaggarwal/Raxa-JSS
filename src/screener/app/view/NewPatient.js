@@ -20,12 +20,12 @@ Ext.define("Screener.view.NewPatient", {
             xtype: 'textfield',
             id: 'givenName',
             name: 'givenname',
-            label: Ext.i18n.appBundle.getMsg('RaxaEmrScreener.view.NewPatient.giv_name')
+            label: Ext.i18n.appBundle.getMsg('RaxaEmrScreener.view.NewPatient.first_name')
         }, {
             xtype: 'textfield',
             id: 'familyName',
             name: 'familyname',
-            label: Ext.i18n.appBundle.getMsg('RaxaEmrScreener.view.NewPatient.fam_name')
+            label: Ext.i18n.appBundle.getMsg('RaxaEmrScreener.view.NewPatient.last_name')
         }, {
             xtype  : 'container',
             id: 'sexRadioGroup',
