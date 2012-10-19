@@ -55,6 +55,7 @@ Ext.define('Registration.controller.Main', {
     searchPatient: function () {
         var l = Ext.getCmp('mainRegArea').getLayout();
         l.setActiveItem(REG_PAGES.SEARCH_1.value); //Going to Search Part-1 Page
+        Ext.getCmp('searchResults').hide();
         Util.KeyMapButton('searchbutton1', Ext.EventObject.ENTER);
     },
     /* continue function copy values of all fields from registrations form to the fields in confirmation screen */

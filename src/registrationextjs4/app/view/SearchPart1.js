@@ -23,14 +23,14 @@ Ext.define('Registration.view.SearchPart1', {
     padding: 10,
     autoScroll: true,
     layout: {
-        type: 'hbox',
-        pack: 'center'
+        type: 'vbox',
+        align: 'center'
     },
     initComponent: function () {
-        this.items = {
+        this.items = [{
             xtype: 'panel',
             ui: 'raxa-panel',
-	      id:'Searchpart1', 
+            id:'Searchpart1', 
             width: 800,
             padding: 20,
             items: [{
@@ -45,9 +45,9 @@ Ext.define('Registration.view.SearchPart1', {
                         msgTarget: 'side'
                     },
                     items: [
-                        //TODO: add these in when search layer is complete
-                        //https://raxaemr.atlassian.net/browse/RAXAJSS-230
-                        /*{
+                    //TODO: add these in when search layer is complete
+                    //https://raxaemr.atlassian.net/browse/RAXAJSS-230
+                    /*{
                         xtype: 'fieldcontainer',
                         fieldLabel: Ext.i18n.appBundle.getMsg('RaxaEmrReg.view.sp1.OPRN'),
                         layout: 'hbox',
@@ -234,7 +234,7 @@ Ext.define('Registration.view.SearchPart1', {
                         xtype: 'button',
                         /*margin: '10 0 0 0',*/
                         margin: '10 50 0 0',
-				        id:'searchbutton1',
+                        id:'searchbutton1',
                         ui: 'raxa-aqua-small',
                         text: Ext.i18n.appBundle.getMsg('RaxaEmrReg.view.sp1.Search'),
                         action: 'search'
@@ -242,7 +242,165 @@ Ext.define('Registration.view.SearchPart1', {
                 }]
             }]
 		
-        };
+        },{
+            xtype: 'panel',
+            ui: 'raxa-panel',
+            id: 'searchResults',
+            width: 800,
+            padding: 20,
+            items: [{
+                xtype: 'container',
+                border: 0,
+                bodyPadding: 10,
+                items: [{
+                    xtype: 'fieldset',
+                    padding: 10,
+                    title: Ext.i18n.appBundle.getMsg('RaxaEmrReg.view.sp2.title'),
+                    fieldDefaults: {
+                        msgTarget: 'side'
+                    },
+                    items: [{
+                        xtype: 'gridpanel',
+                        selType: 'rowmodel',
+                        id: 'patientGrid1',
+                        align: 'centre',
+                        margin: '10 0 0 10',
+                        forceFit: true,
+                        store: 'search',
+                        hideHeaders: false,
+                        columns: [{
+                            xtype: 'gridcolumn',
+                            text: Ext.i18n.appBundle.getMsg('RaxaEmrReg.view.sp2.SN'),
+                            dataIndex: 'id'
+                        }, {
+                            xtype: 'gridcolumn',
+                            text: Ext.i18n.appBundle.getMsg('RaxaEmrReg.view.sp2.FN'),
+                            dataIndex: 'givenName'
+                        }, {
+                            xtype: 'gridcolumn',
+                            text: Ext.i18n.appBundle.getMsg('RaxaEmrReg.view.sp2.LN'),
+                            dataIndex: 'familyName'
+                        }, {
+                            xtype: 'gridcolumn',
+                            text: Ext.i18n.appBundle.getMsg('RaxaEmrReg.view.sp2.Gender'),
+                            dataIndex: 'gender'
+                        }, {
+                            xtype: 'gridcolumn',
+                            text: Ext.i18n.appBundle.getMsg('RaxaEmrReg.view.sp2.DOB'),
+                            renderer: Ext.util.Format.dateRenderer('d.m.Y'),
+                            dataIndex: 'birthdate'
+                        }, {
+                            xtype: 'gridcolumn',
+                            text: Ext.i18n.appBundle.getMsg('RaxaEmrReg.view.sp2.PI'),
+                            dataIndex: 'oldPatientIdentifier'
+                        }, {
+                            xtype: 'gridcolumn',
+                            text: Ext.i18n.appBundle.getMsg('RaxaEmrReg.view.sp2.HFN'),
+                            forceFit: true
+                        }, {
+                            xtype: 'gridcolumn',
+                            text: Ext.i18n.appBundle.getMsg('RaxaEmrReg.view.sp2.Village'),
+                            dataIndex: 'cityVillage'
+                        }, {
+                            xtype: 'gridcolumn',
+                            text: Ext.i18n.appBundle.getMsg('RaxaEmrReg.view.sp2.Town'),
+                            
+                        }],
+                        listeners: {
+                            cellClick: {
+                                fn: function () {
+                                    //All fields are initially set to '-' if data is not available, they remain same otherwise take respective values								
+                                    var itemsToReset = ['patientNameSearchedPatient','ageSearchedPatient','sexSearchedPatient','residentialAreaSearchedPatient','stretSearchedPatient','townSearchedPatient','oldPatientIdentifierSearchedPatient','occupationSearchedPatient','relativeNameSearchedPatient','tehsilSearchedPatient','secondaryContactNumberSearchedPatient','primaryContactNumberSearchedPatient','districtSearchedPatient','phoneSearchedPatient','casteSearchedPatient','educationSearchedPatient'];
+                                    for(var j=0 ; j < itemsToReset.length ; j++)
+                                    {
+                                        Ext.getCmp(itemsToReset[j]).setValue('-');
+                                    };
+
+                                    var temp = this.getSelectionModel().getSelection()[0].getData()
+                                    //saving uuid's here so we can access them in the controllers for encounter POST
+                                    localStorage.setItem('searchUuid',temp.uuid)
+                                    localStorage.setItem('newPatientUuid', temp.uuid)
+
+                                    //									Sets full Gender string
+                                    if(temp.gender=="M")
+                                        temp.gender = "Male";
+                                    else
+                                    if(temp.gender=="F")
+                                        temp.gender = "Female";
+                                    else 
+                                    if(temp.gender=="O")
+                                        temp.gender= "Other";
+
+                                    Ext.getCmp('patientNameSearchedPatient').setValue(temp.givenName + " " + temp.familyName)
+                                    Ext.getCmp('ageSearchedPatient').setValue(temp.age)
+                                    Ext.getCmp('sexSearchedPatient').setValue(temp.gender)
+                                    Ext.getCmp('stretSearchedPatient').setValue(temp.address1)
+                                    Ext.getCmp('residentialAreaSearchedPatient').setValue(temp.address2)
+                                    //									Postal Code Removed from New Patient Registration, so removed from Patient Search Result as well				
+                                    //                                  Ext.getCmp('pinSearchedPatient').setValue(temp.postalCode)
+                                    Ext.getCmp('townSearchedPatient').setValue(temp.cityVillage)
+
+                                    //									Sets Patient Attributes at right place in the form
+                                    for(var i=0;i<temp.attributes.length;i++)
+                                    {
+                                        //search function on string returns position of match (if fouund), otherwise returns -1
+                                        if(temp.attributes[i].attributeType.display.search('Old Patient Identification Number')>=0)
+                                        {
+                                            Ext.getCmp('oldPatientIdentifierSearchedPatient').setValue(temp.attributes[i].value);
+                                        }
+                                        if(temp.attributes[i].attributeType.display.search('Occupation')>=0)
+                                        {
+                                            Ext.getCmp('occupationSearchedPatient').setValue(temp.attributes[i].value);
+                                        }
+                                        if(temp.attributes[i].attributeType.display.search('Primary Relative')>=0)
+                                        {
+                                            Ext.getCmp('relativeNameSearchedPatient').setValue(temp.attributes[i].value);
+                                        }
+                                        if(temp.attributes[i].attributeType.display.search('Tehsil')>=0)
+                                        {
+                                            Ext.getCmp('tehsilSearchedPatient').setValue(temp.attributes[i].value);
+                                        }
+                                        if(temp.attributes[i].attributeType.display.search('Secondary Contact')>=0)
+                                        {
+                                            Ext.getCmp('secondaryContactNumberSearchedPatient').setValue(temp.attributes[i].value);
+                                        }
+                                        if(temp.attributes[i].attributeType.display.search('Primary Contact')>=0)
+                                        {
+                                            Ext.getCmp('primaryContactNumberSearchedPatient').setValue(temp.attributes[i].value);
+                                        }
+                                        if(temp.attributes[i].attributeType.display.search('District')>=0)
+                                        {
+                                            Ext.getCmp('districtSearchedPatient').setValue(temp.attributes[i].value);
+                                        }
+                                        if(temp.attributes[i].attributeType.display.search('Contact By Phone')>=0)
+                                        {
+                                            if(temp.attributes[i].value)
+                                                Ext.getCmp('phoneSearchedPatient').setValue('Yes');
+                                            else
+                                                Ext.getCmp('phoneSearchedPatient').setValue('No');
+                                        }
+                                        if(temp.attributes[i].attributeType.display.search('Caste')>=0)
+                                        {
+                                            Ext.getCmp('casteSearchedPatient').setValue(temp.attributes[i].value);
+                                        }
+                                        if(temp.attributes[i].attributeType.display.search('Education')>=0)
+                                        {
+                                            Ext.getCmp('educationSearchedPatient').setValue(temp.attributes[i].value);
+                                        }
+                                    }
+                                    var l = Ext.getCmp('mainRegArea').getLayout();
+                                    l.setActiveItem(REG_PAGES.SEARCH_CONFIRM.value);
+                                }
+                            }
+                        },
+                        viewConfig: {
+                            emptyText: Ext.i18n.appBundle.getMsg('RaxaEmrReg.view.sp2.NoResult.emptytext'),
+                            stripeRows: false
+                        }
+                    }]
+                }]
+            }]
+        }];
         this.callParent();
 	
 	  

@@ -36,7 +36,7 @@ Ext.define('Registration.controller.Search', {
             }
             if (Ext.getCmp('patientFirstNameSearch').isValid()) 
             {
-                Url = Url + Ext.getCmp('patientFirstNameSearch').getValue() + "&";
+                Url = Url + Ext.getCmp('patientFirstNameSearch').getValue() + " ";
             }
             if (Ext.getCmp('patientLastNameSearch').isValid()) 
             {
@@ -54,15 +54,14 @@ Ext.define('Registration.controller.Search', {
                     root: 'results'
                 }
             });
-            Ext.getCmp('patientGrid').view.store = store;
+            Ext.getCmp('patientGrid1').view.store = store;
             store.load({
                 scope: this,
                 callback: function(records, operation, success){
                     Ext.getBody().unmask();
                     if(success){
-                        var l = Ext.getCmp('mainRegArea').getLayout();
-                        l.setActiveItem(REG_PAGES.SEARCH_2.value);
-                        Ext.getCmp('patientGrid').view.refresh();
+                        Ext.getCmp('searchResults').show();
+                        Ext.getCmp('patientGrid1').view.refresh();
                     }
                     else{
                         Ext.Msg.alert("Error", Util.getMessageLoadError());
