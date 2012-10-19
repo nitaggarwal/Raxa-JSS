@@ -34,13 +34,16 @@ Ext.define('Registration.controller.Search', {
             {
                 Url = Url + Ext.getCmp('PatientIdentifierSearch').getValue() + "&";
             }
-            if (Ext.getCmp('patientFirstNameSearch').isValid()) 
-            {
-                Url = Url + Ext.getCmp('patientFirstNameSearch').getValue() + " ";
-            }
-            if (Ext.getCmp('patientLastNameSearch').isValid()) 
-            {
-                Url = Url + Ext.getCmp('patientLastNameSearch').getValue() + "&";
+            else {
+                if (Ext.getCmp('patientFirstNameSearch').isValid() && Ext.getCmp('patientLastNameSearch').isValid())            
+                {
+                    var firstName = Ext.getCmp('patientFirstNameSearch').getValue();
+                    var lastName = Ext.getCmp('patientLastNameSearch').getValue();
+                    Url = Url + [firstName,lastName].join(' ');
+                }
+                else {
+                    Url = Url + Ext.getCmp('patientFirstNameSearch').getValue() + "&";
+                }
             }
             Url = Url + "&v=full";
             store = Ext.create('Registration.store.search');
