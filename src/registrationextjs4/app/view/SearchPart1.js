@@ -87,6 +87,7 @@ Ext.define('Registration.view.SearchPart1', {
                             fieldLabel: 'Raxa Patient Identifier',
                             width: 303,
                             emptyText: Ext.i18n.appBundle.getMsg('RaxaEmrReg.view.sp1.PRN.emptytext'),
+                            enableKeyEvents: true,
                             allowBlank: false
                         }]
                     }, {
@@ -107,12 +108,15 @@ Ext.define('Registration.view.SearchPart1', {
                             emptyText: Ext.i18n.appBundle.getMsg('RaxaEmrReg.view.sp1.PN.emptytext.1'),
                             id: 'patientFirstNameSearch',
                             width: 147,
+                            enableKeyEvents:true,
                             allowBlank: false
                         }, {
                             name: 'lastName',
                             emptyText: Ext.i18n.appBundle.getMsg('RaxaEmrReg.view.sp1.PN.emptytext.2'),
                             id: 'patientLastNameSearch',
                             width: 147,
+                            enableKeyEvents: true,
+                            allowBlank: false,
                             margins: '0 0 0 6'
                         }]
                     }//TODO: add these in when search layer is complete

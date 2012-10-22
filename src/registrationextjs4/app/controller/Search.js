@@ -1,3 +1,4 @@
+var t;
 Ext.define('Registration.controller.Search', {
     extend: 'Ext.app.Controller',
     views: ['SearchPart1', 'SearchPart2', 'Viewport', 'SearchConfirm'],
@@ -5,6 +6,15 @@ Ext.define('Registration.controller.Search', {
     models: ['searchPatient'],
     init: function () {
         this.control({
+            "searchpart1 #PatientIdentifierSearch": {
+                keyup: this.onSearchKeyUp
+            },
+            "searchpart1 #patientFirstNameSearch": {
+                keyup: this.onSearchKeyUp
+            },
+            "searchpart1 #patientLastNameSearch": {
+                keyup: this.onSearchKeyUp
+            },
             "searchpart1 button[action=search]": {
                 click: this.search
             },
@@ -22,31 +32,55 @@ Ext.define('Registration.controller.Search', {
             }
         });
     },
+    
+    onSearchKeyUp:function()
+    {
+        
+        var that = this;
+        var TimerFn = function(){
+            t = setTimeout( function(){
+                that.search()
+            }, 700 );
+        }
+        if ( t )
+        {
+            clearTimeout( t );
+            TimerFn();
+        }
+        else
+        {
+            TimerFn();
+        }
+    },
+
     //function making the rest call to get the patient with given search quiry
-    search: function () {
-        if (Ext.getCmp('patientFirstNameSearch').isValid() || Ext.getCmp('PatientIdentifierSearch').isValid()) {
+    search: function() {
+        console.log('in search function');
+        
+        Ext.getCmp('searchResults').show();
+        if(Ext.getCmp('PatientIdentifierSearch').isValid() || Ext.getCmp('patientFirstNameSearch').isValid() || Ext.getCmp('patientLastNameSearch').isValid()){
+            var myMask = new Ext.LoadMask(Ext.getCmp('patientGrid1').el, {
+                useMsg: 'Searching...'
+            });
+            myMask.show();
             
-            Ext.getBody().mask('Searching...', 'x-mask-loading');
-            
-            // concatenating the identifier and patient name to make the url for get call
             var Url = HOST + '/ws/rest/v1/patient?q='; // Ext.getCmp('PatientIdentifierSearch').getValue() + "&&v=full";
             if (Ext.getCmp('PatientIdentifierSearch').isValid()) 
             {
                 Url = Url + Ext.getCmp('PatientIdentifierSearch').getValue() + "&";
             }
-            else {
-                if (Ext.getCmp('patientFirstNameSearch').isValid() && Ext.getCmp('patientLastNameSearch').isValid())            
-                {
-                    var firstName = Ext.getCmp('patientFirstNameSearch').getValue();
-                    var lastName = Ext.getCmp('patientLastNameSearch').getValue();
-                    Url = Url + [firstName,lastName].join(' ');
+            else if (Ext.getCmp('patientFirstNameSearch').isValid() || Ext.getCmp('patientLastNameSearch').isValid())            
+            {
+                 if (Ext.getCmp('patientFirstNameSearch').isValid()){
+                    Url = Url + Ext.getCmp('patientFirstNameSearch').getValue()+ ' ';
                 }
-                else {
-                    Url = Url + Ext.getCmp('patientFirstNameSearch').getValue() + "&";
+                if(Ext.getCmp('patientLastNameSearch').isValid()) {
+                    Url = Url + Ext.getCmp('patientLastNameSearch').getValue();    
                 }
             }
+        
             Url = Url + "&v=full";
-            store = Ext.create('Registration.store.search');
+            var store = Ext.create('Registration.store.search');
             // setting up the proxy here because url is not fixed
             store.setProxy({
                 type: 'rest',
@@ -61,20 +95,18 @@ Ext.define('Registration.controller.Search', {
             store.load({
                 scope: this,
                 callback: function(records, operation, success){
-                    Ext.getBody().unmask();
                     if(success){
-                        Ext.getCmp('searchResults').show();
                         Ext.getCmp('patientGrid1').view.refresh();
+                        myMask.hide();
                     }
                     else{
                         Ext.Msg.alert("Error", Util.getMessageLoadError());
+                        myMask.hide();
                     }
                 }
             });
             return store;
-        } else {
-            alert("invalid fields");
-        }
+        }    
     },
     
     //cancels search, goes back to home page
