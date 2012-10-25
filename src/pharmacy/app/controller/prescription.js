@@ -1379,6 +1379,7 @@ Ext.define("RaxaEmr.Pharmacy.controller.prescription", {
     showAllStock: function(){
         this.clearAllStockPanelButtonsUI();
         Ext.getStore('stockList').clearFilter();
+        Ext.getCmp('allStockLocationPicker').reset();
     },
     
     filterAllStocksByLocation: function() {
